@@ -61,8 +61,8 @@ Hint Constructors prod.
 (* Exercise 1.1 *)
 Definition mycompose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
   fun x => g (f x).
-Theorem mycompose_assoc : forall (A B C D : Type) (f : A -> B) (g : B -> C) (h : C -> D),
-       mycompose h (mycompose g f) = mycompose (mycompose h g) f.
+Theorem mycompose_assoc : forall (A B C D : Type) (f : A -> B) (g : B -> C) (h : C -> D) (i : C -> D),
+       mycompose (mycompose h g) f = mycompose h (mycompose g f).
   reflexivity.
 Qed.
 (* Or you can do it after applying evaluation rules yourself. *)
@@ -75,7 +75,7 @@ Qed.
    formulate an operation as a function application, you get associativity
    for free.  It's worth contrasting this with the usual definition of
    addition on natural numbers, where associativity only holds *propositionally*. *)
-Definition mycompose_library {A B C} := @compose A B C.
+(*Definition mycompose_library {A B C} := @compose A B C.*)
 
 (* Exercise 1.2 *)
 Section Book_1_2_prod.
@@ -85,6 +85,8 @@ Section Book_1_2_prod.
   Definition my_prod_rec (C : Type) (g : A -> B -> C) (p : A * B) : C :=
     g (fst p) (snd p).
   Goal fst = my_prod_rec A (fun a => fun b => a). reflexivity. Qed.
+  Goal fst = my_prod_rec A (fun a => fun b => a). intros. cbv delta beta. reflexivity. Qed.
+  Goal fst = my_prod_rec A (fun a => fun b => a). unfold my_prod_rec. trivial. Qed.
   Goal snd = my_prod_rec B (fun a => fun b => b). reflexivity. Qed.
 End Book_1_2_prod.
 
@@ -104,11 +106,22 @@ End Book_1_2_sig.
 Section Book_1_3_prod.
   Variable A B : Type.
   Definition prod_uppt : forall (x : A * B), ((fst x, snd x) = x) :=
-    fun p => match p with (a,b) => 1 end.
+    fun p => match p with (a,b) => reflexivity (a,b) end.
   Definition prod_ind_uppt (C : A * B -> Type) (g : forall (x : A) (y : B), C (x, y)) (x : A * B) : C x :=
     transport C (prod_uppt x) (g (fst x) (snd x)).
   Definition Book_1_3_prod := prod_ind_uppt.
   Theorem Book_1_3_prod_refl : forall C g a b, prod_ind_uppt C g (a, b) = g a b. reflexivity. Qed.
+  Theorem Book_1_3_prod_refl' : forall C g a b , prod_ind_uppt C g (a, b) = g a b.
+    intros.
+    unfold prod_ind_uppt.
+    unfold prod_uppt.
+    unfold reflexivity.
+    unfold transport.
+    unfold reflexive_paths.
+    unfold fst.
+    unfold snd.
+    trivial.
+  Qed.
 End Book_1_3_prod.
 
 Section Book_1_3_sig.
