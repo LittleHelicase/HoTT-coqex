@@ -230,7 +230,7 @@ Definition hom {A : Type} {P : A -> Type} (f g : forall x : A, P x) {B: forall x
 Defined.
 *)
 
-Definition hom {A : Type} {P : A -> Type} (f g : forall x, P x) : forall x, (f x) = (g x).
+Definition hom {A : Type} {P : A -> Type} := fun f g : forall x, P x => forall x, (f x) = (g x).
 
 Lemma lemma2_4_2' {A B : Type} (x y : A) (f g : A -> B) (p : x = y) (H : hom f g) :
   (H x) @ (ap g p) = (ap f p) @ (H y).
