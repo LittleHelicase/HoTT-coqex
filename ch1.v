@@ -453,3 +453,8 @@ Notice that the normal path induction proof is pretty similar to the based path 
 
 Definition ioi {A : Type} (C : A -> Type) (x y : A) (p : x = y) : C x -> C y :=
   fun c => ind (fun _ _ _ => C y) (fun _ => p # c) x y p.
+
+
+
+
+
