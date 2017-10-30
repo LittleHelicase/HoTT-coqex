@@ -4,6 +4,12 @@ Local Open Scope equiv_scope.
 
 (* Exercise 2.1 *)
 
+Lemma inverse_2_1_1 (A: Type) (x y : A): (x = y) -> (y = x).
+  intros.
+  rewrite X.
+  trivial.
+Qed.
+
 Lemma translr {A : Type} {x y z : A} (p : x = y) (q : y = z) : x = z.
   induction p. induction q. reflexivity.
 Defined.
@@ -177,12 +183,37 @@ Lemma lemma2_3_9 {A : Type} (P : A -> Type) {x y z : A} (p : x = y) (q : y = z) 
   transport _ q (transport _ p u) = transport _ (p @ q) u.
   path_induction; reflexivity.
 Defined.
+
+Lemma lemma2_3_9' {A: Type} (P : A -> Type) {x y z : A} (p: x = y) (q: y = z) (u: P x) :
+  transport _ q (transport _ p u) = transport _ (p @ q) u.
+  path_induction.
+  unfold transport.
+  unfold concat.
+  trivial.
+Qed.
+
 Print transport_pp. (* Actually, you don't need this one. Yet. *)
 
 Lemma lemma2_3_10 {A B : Type} (f : A -> B) (P : B -> Type) {x y : A} (p : x = y) (u : P (f x)) :
   transport (P o f) p u = transport P (ap f p) u.
   path_induction; reflexivity.
 Defined.
+
+Lemma  lemma2_3_10' {A B : Type} (f: A -> B) (P : B -> Type) {x y : A} (p: x = y) (u : P (f x)) :
+  transport (P o f) p u = transport P (ap f p) u.
+  unfold ap.
+  unfold transport.
+  path_induction.
+  trivial.
+Qed.
+
+Lemma lemma2_3_11' {A: Type} {P Q : A -> Type} (f : forall x : A, P x -> Q x) {x y : A} (p : x = y) (u : P x) :
+  transport Q p (f x u) = f y (transport P p u).
+  path_induction.
+  unfold transport.
+  trivial.
+Qed.
+
 Print transport_compose.
 
 Lemma lemma2_3_11 {A : Type} (P Q : A -> Type) (f : forall x : A, P x -> Q x) {x y : A} (p : x = y) (u : P x) :
@@ -190,6 +221,20 @@ Lemma lemma2_3_11 {A : Type} (P Q : A -> Type) (f : forall x : A, P x -> Q x) {x
   path_induction; reflexivity.
 Defined.
 Print ap_transport. (* It's not entirely clear why it's called 'ap' transport, since no ap is involved. *)
+
+(*
+Inductive hom : {A : Type} {P : A -> Type} (f g : forall x, P x) : Type := 
+  | FunHom : f -> g -> {B: forall x, (f x) = (g x)}
+
+Definition hom {A : Type} {P : A -> Type} (f g : forall x : A, P x) {B: forall x, (f x) = (g x)}.
+Defined.
+*)
+
+Definition hom {A : Type} {P : A -> Type} (f g : forall x, P x) : forall x, (f x) = (g x).
+
+Lemma lemma2_4_2' {A B : Type} (x y : A) (f g : A -> B) (p : x = y) (H : hom f g) :
+  (H x) @ (ap g p) = (ap f p) @ (H y).
+Qed.
 
 (* A useful trick which jgross showed me: if you are not sure how a theorem should
 be stated, replace it with a : Type, and fill it out using tactic mode.  This is actually

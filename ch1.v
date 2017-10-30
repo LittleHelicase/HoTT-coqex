@@ -104,7 +104,7 @@ End Book_1_2_sig.
 Section Book_1_3_prod.
   Variable A B : Type.
   Definition prod_uppt : forall (x : A * B), ((fst x, snd x) = x) :=
-    fun p => match p with (a,b) => 1 end.
+    fun p => match p with (a,b) => reflexivity (a,b) end.
   Definition prod_ind_uppt (C : A * B -> Type) (g : forall (x : A) (y : B), C (x, y)) (x : A * B) : C x :=
     transport C (prod_uppt x) (g (fst x) (snd x)).
   Definition Book_1_3_prod := prod_ind_uppt.
@@ -115,7 +115,7 @@ Section Book_1_3_sig.
   Variable A : Type.
   Variable B : A -> Type.
   Definition sig_uppt : forall (x : exists (a : A), B a), ((projT1 x; projT2 x) = x) :=
-    fun p => match p with (a;b) => 1 end.
+    fun p => match p with (a;b) => reflexivity (a; b) end.
   Definition sig_ind_uppt (C : (exists (a : A), B a) -> Type) (g : forall (a : A) (b : B a), C (a; b)) (x : exists (a : A), B a) : C x :=
     transport C (sig_uppt x) (g (projT1 x) (projT2 x)).
   Definition Book_1_3_sig := sig_ind_uppt.
@@ -141,6 +141,24 @@ Lemma mynat_rec_eq : forall {C c0 cs n}, mynat_rec' C c0 cs n = (n, nat_rect (fu
   (* Using uncurried path_prod keeps our induction hypothesis strong *)
   intros; apply path_prod_uncurried; induction n; crush; auto.
 Qed.
+Lemma mynat_rec_eq' : forall {C c0 cs n}, mynat_rec' C c0 cs n = (n, nat_rect (fun _ => C) c0 cs n).
+  intros.
+  apply path_prod_uncurried.
+  induction n.
+  unfold mynat_rec'.
+  unfold iter.
+  unfold fst.
+  unfold nat_rect.
+  unfold snd.
+  exact (reflexivity 0, reflexivity c0).
+
+  unfold mynat_rec'.
+  unfold iter.
+  unfold nat_rec.
+  unfold fst.
+  crush.
+  auto.
+Qed.
 Hint Resolve mynat_rec_eq.
 Hint Rewrite @mynat_rec_eq : core.
 
@@ -160,7 +178,7 @@ Eval compute in mynat_rec (list nat) nil (@cons nat) 2.
 Eval compute in nat_rect (fun _ => list nat) nil (@cons nat) 2.
 
 (* Exercise 1.5 *)
-Definition mycoprod (A B : Type) := exists (x : Bool), Bool_rect (fun _ => Type) A B x.
+(*Definition mycoprod (A B : Type) := exists (x : Bool), Bool_rect (fun _ => Type) A B x.
 
 Section ex_1_5.
   Variable A B : Type.
@@ -195,10 +213,10 @@ Section ex_1_5.
 
   Goal forall C l r x, mycoprod_ind C l r (inl x) = l x. reflexivity. Qed.
   Goal forall C l r x, mycoprod_ind C l r (inr x) = r x. reflexivity. Qed.
-End ex_1_5.
+End ex_1_5.*)
 
 (* Exercise 1.6 *)
-
+(*
 Definition myprod (A B : Type) := forall (x : Bool), Bool_rect (fun _ => Type) A B x.
 Section ex_1_6.
   Context `{Funext}.
@@ -277,20 +295,57 @@ Check (fun (A : Type) (x a : A) (p : a = x) => contr (x; p)).
 Definition ind'' {A : Type} (a : A) (C : forall (x : A), a = x -> Type) (c : C a 1) (x : A) (p : a = x) : C x p :=
   transport (fun z : exists x, a = x => C z.1 z.2)
             (contr (x; p)) c.
-
+*)
 (* Exercise 1.8 *)
 Check nat_rect.
+Check nat_rect (fun _ => nat).
+Check nat_rect (fun n => match n with
+  | 0 => nat
+  | S n => (nat -> nat) end).
 (* You can write these to ways, and it's traditional to recurse on the first argument *)
 Definition add (a b : nat) := nat_rect (fun _ => nat) b (fun _ n => S n) a.
 Definition mult (a b : nat) := nat_rect (fun _ => nat) 0 (fun _ n => add n b) a.
 Definition exp (a b : nat) := nat_rect (fun _ => nat) 1%nat (fun _ n => mult n b) a.
 Eval compute in mult 3 4.
-Eval compute in exp 2 4.
+Eval compute in exp 3 4.
+Check add.
 
 (* You need congruence of naturals to do some of these proofs, I think. *)
 
 Lemma nat_plus_assoc : forall a b c, add (add a b) c = add a (add b c).
-  intros; induction a; crush.
+  intros. induction a. crush. crush.
+Qed.
+Lemma nat_plus_l_zero' : forall a, add 0 a = a.
+  induction a.
+  unfold add.
+  unfold nat_rect.
+  exact (reflexivity 0).
+  unfold add.
+  unfold nat_rect.
+  trivial.
+Qed.
+Lemma nat_plus_l_succ' : forall a b, add (S a) b = S (add a b).
+  intros.
+  induction a.
+  unfold add.
+  unfold nat_rect.
+  trivial.
+  rewrite IHa.
+  unfold add.
+  unfold nat_rect.
+  trivial.
+Qed.
+Lemma nat_plus_assoc' : forall a b c, add (add a b) c = add a (add b c).
+  intros.
+  induction a.
+  rewrite nat_plus_l_zero'.
+  rewrite nat_plus_l_zero'.
+  trivial.
+  rewrite nat_plus_l_succ'.
+  rewrite nat_plus_l_succ'.
+  rewrite nat_plus_l_succ'.
+  rewrite IHa.
+  trivial.
 Qed.
 Lemma nat_plus_r_zero : forall a, add a 0 = a. induction a; crush. Qed.
 Lemma nat_plus_l_zero : forall a, add 0 a = a. reflexivity. Qed.
@@ -298,6 +353,15 @@ Hint Immediate nat_plus_r_zero nat_plus_l_zero.
 Hint Rewrite nat_plus_r_zero nat_plus_l_zero.
 Lemma nat_plus_r_succ : forall a b, add a (S b) = S (add a b). intros; induction a; crush. Qed.
 Hint Resolve nat_plus_r_succ.
+Lemma nat_plus_commutative' : forall a b, add a b = add b a.
+  intros.
+  induction a.
+  rewrite nat_plus_r_zero. rewrite nat_plus_l_zero.
+  trivial.
+  rewrite nat_plus_l_succ'; rewrite nat_plus_r_succ.
+  rewrite IHa.
+  trivial.
+Qed.
 Lemma nat_plus_commutative : forall a b, add a b = add b a.
   induction a; induction b; crush; f_ap; auto. transitivity (S (add a b)); auto.
 Qed. (* oh the lack of congruence! *)
@@ -313,7 +377,7 @@ Lemma nat_mult_distr : forall a b c, mult (add a b) c = add (mult a c) (mult b c
   change ((fun p => add p (add (mult b c) c)) (add c (mult a c)) = (fun p => add p (add (mult b c) c)) (add (mult a c) c)).
   f_ap. apply nat_plus_commutative.
 Qed.
-Hint Resolve nat_mult_distr.  
+Hint Resolve nat_mult_distr.
 Hint Resolve nat_mult_l_succ.
 Lemma nat_mult_assoc : forall a b c, mult (mult a b) c = mult a (mult b c).
   intros; induction a; crush. rewrite <- IHa. auto.
@@ -352,9 +416,9 @@ Goal forall P, ~~(P \/ ~P). unfold not; auto. Qed.
 
 (* Exercise 1.14 *)
 
-Definition f : forall (A : Type) (x : A) (p : x = x), p = 1.
+Definition f : forall (A : Type) (x : A) (p : x = x), p = reflexivity x.
   intros. path_induction.
-  try (exact 1).
+  try (reflexivity 1).
 Abort.
 
 (* The problem is both endpoints are fixed. There are nontrivial homotopies now! *)
@@ -362,7 +426,13 @@ Abort.
 (* Exercise 1.15 *)
 
 Theorem ioi' {A : Type} (C : A -> Type) (x y : A) (p : x = y) : C x -> C y.
-  path_induction; auto.
+  path_induction. auto.
+Qed.
+
+Theorem ioi'' {A: Type} (C: A -> Type) (x y : A) (p: x = y) : C x -> C y.
+  intros.
+  rewrite <- p.
+  apply X.
 Qed.
 
 (* OK, this is cheating a little because the problem asked for a proof from plain 'path induction'.
@@ -370,3 +440,8 @@ Notice that the normal path induction proof is pretty similar to the based path 
 
 Definition ioi {A : Type} (C : A -> Type) (x y : A) (p : x = y) : C x -> C y :=
   fun c => ind (fun _ _ _ => C y) (fun _ => p # c) x y p.
+
+
+
+
+
